@@ -1,0 +1,30 @@
+{
+    "name": "calevans/staticforge-podcast",
+    "description": "StaticForge Feature: Podcast",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Calevans\\StaticForgePodcast\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Calevans\\StaticForgePodcast\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.4",
+        "eicc/utils": "^1.2",
+        "symfony/console": "^6.4",
+        "symfony/yaml": "^6.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "extra": {
+        "staticforge": {
+            "feature": "Calevans\\StaticForgePodcast\\Feature"
+        }
+    }
+}
