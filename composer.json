@@ -16,5 +16,10 @@
     "require": {
         "php": "^8.4",
         "james-heinrich/getid3": "^1.9"
+    },
+    "extra": {
+        "staticforge": {
+            "feature": "Vendor\\PackageName\\Feature"
+        }
     }
 }
