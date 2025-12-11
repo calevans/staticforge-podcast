@@ -19,7 +19,7 @@
     },
     "extra": {
         "staticforge": {
-            "feature": "Vendor\\PackageName\\Feature"
+            "feature": "Calevans\\StaticForgePodcast\\Feature"
         }
     }
 }
