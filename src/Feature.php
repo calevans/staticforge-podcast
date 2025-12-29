@@ -6,6 +6,7 @@ namespace Calevans\StaticForgePodcast;
 
 use EICC\StaticForge\Core\BaseFeature;
 use EICC\StaticForge\Core\FeatureInterface;
+use EICC\StaticForge\Core\ConfigurableFeatureInterface;
 use EICC\StaticForge\Core\EventManager;
 use Calevans\StaticForgePodcast\Commands\InspectMediaCommand;
 use Calevans\StaticForgePodcast\Listeners\RssItemListener;
@@ -15,7 +16,7 @@ use EICC\Utils\Container;
 use EICC\Utils\Log;
 use Symfony\Component\Console\Application;
 
-class Feature extends BaseFeature implements FeatureInterface
+class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatureInterface
 {
     protected string $name = 'Podcast';
     protected Log $logger;
@@ -62,5 +63,15 @@ class Feature extends BaseFeature implements FeatureInterface
     {
         $this->listener->handle($parameters);
         return $parameters;
+    }
+
+    public function getRequiredConfig(): array
+    {
+        return [];
+    }
+
+    public function getRequiredEnv(): array
+    {
+        return [];
     }
 }

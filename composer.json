@@ -15,6 +15,7 @@
     },
     "require": {
         "php": "^8.4",
+        "eicc/staticforge": "dev-main",
         "james-heinrich/getid3": "^1.9"
     },
     "extra": {
