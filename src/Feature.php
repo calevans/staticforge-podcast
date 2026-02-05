@@ -9,6 +9,7 @@ use EICC\StaticForge\Core\FeatureInterface;
 use EICC\StaticForge\Core\ConfigurableFeatureInterface;
 use EICC\StaticForge\Core\EventManager;
 use Calevans\StaticForgePodcast\Commands\InspectMediaCommand;
+use Calevans\StaticForgePodcast\Commands\SetupCommand;
 use Calevans\StaticForgePodcast\Listeners\PageRenderListener;
 use Calevans\StaticForgePodcast\Listeners\RssItemListener;
 use Calevans\StaticForgePodcast\Services\MediaInspect\MediaInspector;
@@ -41,18 +42,19 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
         $siteConfig = $container->getVariable('site_config');
         $outputDir = $appRoot . '/public';
         $sourceDir = $appRoot . '/content';
-        $siteBaseUrl = $siteConfig['url'] ?? 'http://localhost';
+
+        $siteName = $siteConfig['site']['name'] ?? 'Podcast';
+        $cachePath = $appRoot . '/cache/podcast_media_state.json';
 
         // Initialize services
         $mediaInspector = new MediaInspector();
-        $mediaService = new PodcastMediaService($mediaInspector);
+        $mediaService = new PodcastMediaService($mediaInspector, $siteName, $cachePath);
 
         $this->rssListener = new RssItemListener(
             $mediaService,
             $this->logger,
             $outputDir,
-            $sourceDir,
-            $siteBaseUrl
+            $sourceDir
         );
 
         $this->pageListener = new PageRenderListener(
@@ -68,19 +70,30 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
         /** @var Application $app */
         $app = $parameters['application'];
         $app->add(new InspectMediaCommand());
+        $app->add(new SetupCommand());
         return $parameters;
     }
 
     public function handleRssItemBuilding(Container $container, array $parameters): array
     {
-        $this->rssListener->handle($parameters);
+        $siteBaseUrl = $container->getVariable('SITE_BASE_URL');
+        if ($siteBaseUrl === null) {
+            throw new \RuntimeException('SITE_BASE_URL not set in container');
+        }
+
+        $this->rssListener->handle($parameters, $siteBaseUrl);
         return $parameters;
     }
 
     public function handleRssBuilderInit(Container $container, array $parameters): array
     {
         $builder = $parameters['builder'];
-        $siteBaseUrl = $container->getVariable('site_config')['url'] ?? 'http://localhost';
+
+        $siteBaseUrl = $container->getVariable('SITE_BASE_URL');
+        if ($siteBaseUrl === null) {
+            throw new \RuntimeException('SITE_BASE_URL not set in container');
+        }
+
         $extension = new PodcastExtension($siteBaseUrl);
         $builder->addExtension($extension);
         return $parameters;

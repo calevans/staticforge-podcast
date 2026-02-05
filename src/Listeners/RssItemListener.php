@@ -14,12 +14,11 @@ class RssItemListener
         private PodcastMediaService $mediaService,
         private Log $logger,
         private string $outputDir,
-        private string $sourceDir,
-        private string $siteBaseUrl
+        private string $sourceDir
     ) {
     }
 
-    public function handle(array $eventData): void
+    public function handle(array $eventData, string $siteBaseUrl): void
     {
         /** @var FeedItem $item */
         $item = $eventData['item'];
@@ -34,6 +33,16 @@ class RssItemListener
         }
 
         try {
+            // Clean Content: Extract only the content body from the full HTML
+            if ($item->content) {
+                if (preg_match('/<div class="content-body">(.*?)<\/div>/s', $item->content, $matches)) {
+                    $item->content = trim($matches[1]);
+                } else {
+                    // Fallback: If no content-body div, use description
+                    $item->content = $item->description;
+                }
+            }
+
             $mediaData = $this->mediaService->processMedia(
                 $file,
                 $this->sourceDir,
@@ -43,7 +52,7 @@ class RssItemListener
             if ($mediaData) {
                 // Ensure URL is absolute if needed
                 if (!preg_match('~^https?://~i', $mediaData['url'])) {
-                    $mediaData['url'] = rtrim($this->siteBaseUrl, '/') . '/' . ltrim($mediaData['url'], '/');
+                    $mediaData['url'] = rtrim($siteBaseUrl, '/') . '/' . ltrim($mediaData['url'], '/');
                 }
 
                 $item->enclosure = $mediaData;

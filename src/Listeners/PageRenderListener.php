@@ -20,7 +20,7 @@ class PageRenderListener
     public function handle(array $parameters): array
     {
         $metadata = $parameters['metadata'] ?? [];
-        
+
         // mimicking the file structure expected by PodcastMediaService
         // It expects ['metadata' => $metadata]
         $fileData = ['metadata' => $metadata];
@@ -40,7 +40,7 @@ class PageRenderListener
             if ($mediaData) {
                 // Determine variable name based on type
                 $key = (strpos($mediaData['type'], 'video') !== false) ? 'video_url' : 'audio_url';
-                
+
                 // Inject into metadata so it's available in template
                 $parameters['metadata'][$key] = $mediaData['url'];
                 $parameters['metadata']['media_type'] = $mediaData['type'];

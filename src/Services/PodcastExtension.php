@@ -22,7 +22,8 @@ class PodcastExtension implements FeedExtensionInterface
     public function getNamespaces(): array
     {
         return [
-            'itunes' => 'http://www.itunes.com/dtds/podcast-1.0.dtd'
+            'itunes' => 'http://www.itunes.com/dtds/podcast-1.0.dtd',
+            'podcast' => 'https://podcastindex.org/namespace/1.0'
         ];
     }
 
@@ -46,6 +47,16 @@ class PodcastExtension implements FeedExtensionInterface
 
         $summary = $metadata['itunes_summary'] ?? $metadata['description'] ?? null;
         if ($summary) {
+
+            // Fix: Update main RSS description if it is too short (podba.se validation)
+            // By default StaticForge might generate a short "articles from Site" description
+            $descriptions = $channel->getElementsByTagName('description');
+            if ($descriptions->length > 0) {
+                $descNode = $descriptions->item(0);
+                if (strlen($descNode->textContent) < 50) {
+                    $descNode->textContent = $summary;
+                }
+            }
             $channel->appendChild($dom->createElement('itunes:summary', $summary));
         }
 
@@ -99,6 +110,15 @@ class PodcastExtension implements FeedExtensionInterface
 
     public function applyToItem(DOMElement $item, FeedItem $data, DOMDocument $dom): void
     {
+        // Enclosure fallback: If RssBuilder didn't add it (checked by tag count), add it here.
+        if (!empty($data->enclosure) && $item->getElementsByTagName('enclosure')->length === 0) {
+            $enc = $dom->createElement('enclosure');
+            $enc->setAttribute('url', $data->enclosure['url']);
+            $enc->setAttribute('length', (string)$data->enclosure['length']);
+            $enc->setAttribute('type', $data->enclosure['type']);
+            $item->appendChild($enc);
+        }
+
         $metadata = $data->metadata;
 
         // Enclosure is handled by standard RSS, but iTunes uses it too.
@@ -161,16 +181,16 @@ class PodcastExtension implements FeedExtensionInterface
         if (preg_match('~^https?://~i', $url)) {
             return $url;
         }
-        
+
         // Use siteBaseUrl if available, otherwise rely on passed baseUrl
         $base = !empty($this->siteBaseUrl) ? $this->siteBaseUrl : $baseUrl;
-        
+
         // Ensure base ends with /
         $base = rtrim($base, '/') . '/';
-        
+
         // Remove leading / from url
         $relative = ltrim($url, '/');
-        
+
         return $base . $relative;
     }
 }
