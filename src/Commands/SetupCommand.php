@@ -25,7 +25,7 @@ class SetupCommand extends Command
         // Determine paths
         $projectRoot = getcwd();
         $cacheDir = $projectRoot . '/cache';
-        
+
         // --- 1. Cache Setup ---
         if (!is_dir($cacheDir)) {
             $output->writeln("Creating cache directory: <comment>{$cacheDir}</comment>");
@@ -72,7 +72,7 @@ class SetupCommand extends Command
 
             $templateDestDir = $projectRoot . '/templates/' . $theme;
             $templateDestFile = $templateDestDir . '/_podcast_badges.html.twig';
-            
+
             // Source is in ../../resources/templates/ relative to this file
             $sourceDir = dirname(__DIR__, 2) . '/resources/templates';
             $sourceFile = $sourceDir . '/_podcast_badges.html.twig';

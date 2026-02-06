@@ -29,8 +29,6 @@ class PodcastMediaService
      */
     public function processMedia(array $fileData, string $sourceDir, string $outputDir): ?array
     {
-        file_put_contents('debug_media.log', "ProcessMedia Called for " . ($fileData['metadata']['title'] ?? 'unknown') . "\n", FILE_APPEND);
-
         $metadata = $fileData['metadata'] ?? [];
         $audioFile = $metadata['audio_file'] ?? $metadata['video_file'] ?? null;
 
