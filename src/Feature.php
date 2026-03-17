@@ -33,13 +33,13 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
         'PRE_RENDER' => ['method' => 'handlePreRender', 'priority' => 50]
     ];
 
-    public function register(EventManager $eventManager, Container $container): void
+    public function register(EventManager $eventManager): void
     {
-        parent::register($eventManager, $container);
-        $this->logger = $container->get('logger');
+        parent::register($eventManager);
+        $this->logger = $this->container->get('logger');
 
-        $appRoot = $container->getVariable('app_root');
-        $siteConfig = $container->getVariable('site_config');
+        $appRoot = $this->container->getVariable('app_root');
+        $siteConfig = $this->container->getVariable('site_config');
         $outputDir = $appRoot . '/public';
         $sourceDir = $appRoot . '/content';
 
@@ -76,7 +76,7 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
 
     public function handleRssItemBuilding(Container $container, array $parameters): array
     {
-        $siteBaseUrl = $container->getVariable('SITE_BASE_URL');
+        $siteBaseUrl = $this->container->getVariable('SITE_BASE_URL');
         if ($siteBaseUrl === null) {
             throw new \RuntimeException('SITE_BASE_URL not set in container');
         }
@@ -89,7 +89,7 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
     {
         $builder = $parameters['builder'];
 
-        $siteBaseUrl = $container->getVariable('SITE_BASE_URL');
+        $siteBaseUrl = $this->container->getVariable('SITE_BASE_URL');
         if ($siteBaseUrl === null) {
             throw new \RuntimeException('SITE_BASE_URL not set in container');
         }
