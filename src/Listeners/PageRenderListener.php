@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Calevans\StaticForgePodcast\Listeners;
 
 use Calevans\StaticForgePodcast\Services\PodcastMediaService;
+use EICC\StaticForge\Core\Events\RenderEvent;
 use EICC\Utils\Log;
 
 class PageRenderListener
@@ -17,9 +18,9 @@ class PageRenderListener
     ) {
     }
 
-    public function handle(array $parameters): array
+    public function handle(RenderEvent $event): void
     {
-        $metadata = $parameters['metadata'] ?? [];
+        $metadata = $event->metadata;
 
         // mimicking the file structure expected by PodcastMediaService
         // It expects ['metadata' => $metadata]
@@ -27,7 +28,7 @@ class PageRenderListener
 
         // Check if this is a podcast item
         if (empty($metadata['audio_file']) && empty($metadata['video_file'])) {
-            return $parameters;
+            return;
         }
 
         try {
@@ -42,21 +43,12 @@ class PageRenderListener
                 $key = (strpos($mediaData['type'], 'video') !== false) ? 'video_url' : 'audio_url';
 
                 // Inject into metadata so it's available in template
-                $parameters['metadata'][$key] = $mediaData['url'];
-                $parameters['metadata']['media_type'] = $mediaData['type'];
-                $parameters['metadata']['media_length'] = $mediaData['length'];
-
-                // Also inject into file_metadata which is used by MarkdownRenderer
-                if (isset($parameters['file_metadata'])) {
-                    $parameters['file_metadata'][$key] = $mediaData['url'];
-                    $parameters['file_metadata']['media_type'] = $mediaData['type'];
-                    $parameters['file_metadata']['media_length'] = $mediaData['length'];
-                }
+                $event->metadata[$key] = $mediaData['url'];
+                $event->metadata['media_type'] = $mediaData['type'];
+                $event->metadata['media_length'] = $mediaData['length'];
             }
         } catch (\Exception $e) {
             $this->logger->log('ERROR', "Podcast: Failed to process media for page: " . $e->getMessage());
         }
-
-        return $parameters;
     }
 }

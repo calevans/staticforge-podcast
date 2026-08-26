@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Calevans\StaticForgePodcast\Commands;
 
 use Calevans\StaticForgePodcast\Services\MediaInspect\MediaInspector;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -12,11 +13,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Yaml\Yaml;
 
+#[AsCommand(
+    name: 'media:inspect',
+    description: 'Inspect media file referenced in markdown frontmatter and update metadata'
+)]
 class InspectMediaCommand extends Command
 {
-    protected static $defaultName = 'media:inspect';
-    protected static $defaultDescription = 'Inspect media file referenced in markdown frontmatter and update metadata';
-
     private MediaInspector $mediaInspector;
 
     public function __construct(?MediaInspector $mediaInspector = null)

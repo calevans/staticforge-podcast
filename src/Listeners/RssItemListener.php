@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Calevans\StaticForgePodcast\Listeners;
 
 use Calevans\StaticForgePodcast\Services\PodcastMediaService;
-use EICC\StaticForge\Features\RssFeed\Models\FeedItem;
+use EICC\StaticForge\Core\Events\RssItemBuildingEvent;
 use EICC\Utils\Log;
 
 class RssItemListener
@@ -18,12 +18,10 @@ class RssItemListener
     ) {
     }
 
-    public function handle(array $eventData, string $siteBaseUrl): void
+    public function handle(RssItemBuildingEvent $event, string $siteBaseUrl): void
     {
-        /** @var FeedItem $item */
-        $item = $eventData['item'];
-        /** @var array $file */
-        $file = $eventData['file'];
+        $item = $event->item;
+        $file = $event->file;
 
         $metadata = $file['metadata'] ?? [];
 

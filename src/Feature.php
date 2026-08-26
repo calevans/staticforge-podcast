@@ -7,6 +7,11 @@ namespace Calevans\StaticForgePodcast;
 use EICC\StaticForge\Core\BaseFeature;
 use EICC\StaticForge\Core\FeatureInterface;
 use EICC\StaticForge\Core\ConfigurableFeatureInterface;
+use EICC\StaticForge\Core\Events\ConsoleInitEvent;
+use EICC\StaticForge\Core\Events\EventListener;
+use EICC\StaticForge\Core\Events\RenderEvent;
+use EICC\StaticForge\Core\Events\RssBuilderInitEvent;
+use EICC\StaticForge\Core\Events\RssItemBuildingEvent;
 use EICC\StaticForge\Core\EventManager;
 use Calevans\StaticForgePodcast\Commands\InspectMediaCommand;
 use Calevans\StaticForgePodcast\Commands\SetupCommand;
@@ -17,7 +22,6 @@ use Calevans\StaticForgePodcast\Services\PodcastMediaService;
 use Calevans\StaticForgePodcast\Services\PodcastExtension;
 use EICC\Utils\Container;
 use EICC\Utils\Log;
-use Symfony\Component\Console\Application;
 
 class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatureInterface
 {
@@ -26,17 +30,15 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
     private RssItemListener $rssListener;
     private PageRenderListener $pageListener;
 
-    protected array $eventListeners = [
-        'CONSOLE_INIT' => ['method' => 'registerCommands', 'priority' => 100],
-        'RSS_ITEM_BUILDING' => ['method' => 'handleRssItemBuilding', 'priority' => 100],
-        'RSS_BUILDER_INIT' => ['method' => 'handleRssBuilderInit', 'priority' => 100],
-        'PRE_RENDER' => ['method' => 'handlePreRender', 'priority' => 50]
-    ];
+    public function __construct(Container $container, Log $logger)
+    {
+        $this->container = $container;
+        $this->logger = $logger;
+    }
 
     public function register(EventManager $eventManager): void
     {
         parent::register($eventManager);
-        $this->logger = $this->container->get('logger');
 
         $appRoot = $this->container->getVariable('app_root');
         $siteConfig = $this->container->getVariable('site_config');
@@ -65,43 +67,40 @@ class Feature extends BaseFeature implements FeatureInterface, ConfigurableFeatu
         );
     }
 
-    public function registerCommands(Container $container, array $parameters): array
+    #[EventListener('CONSOLE_INIT', priority: 100)]
+    public function registerCommands(ConsoleInitEvent $event): void
     {
-        /** @var Application $app */
-        $app = $parameters['application'];
-        $app->add(new InspectMediaCommand());
-        $app->add(new SetupCommand());
-        return $parameters;
+        $event->application->addCommand(new InspectMediaCommand());
+        $event->application->addCommand(new SetupCommand());
     }
 
-    public function handleRssItemBuilding(Container $container, array $parameters): array
+    #[EventListener('RSS_ITEM_BUILDING', priority: 100)]
+    public function handleRssItemBuilding(RssItemBuildingEvent $event): void
     {
         $siteBaseUrl = $this->container->getVariable('SITE_BASE_URL');
         if ($siteBaseUrl === null) {
             throw new \RuntimeException('SITE_BASE_URL not set in container');
         }
 
-        $this->rssListener->handle($parameters, $siteBaseUrl);
-        return $parameters;
+        $this->rssListener->handle($event, $siteBaseUrl);
     }
 
-    public function handleRssBuilderInit(Container $container, array $parameters): array
+    #[EventListener('RSS_BUILDER_INIT', priority: 100)]
+    public function handleRssBuilderInit(RssBuilderInitEvent $event): void
     {
-        $builder = $parameters['builder'];
-
         $siteBaseUrl = $this->container->getVariable('SITE_BASE_URL');
         if ($siteBaseUrl === null) {
             throw new \RuntimeException('SITE_BASE_URL not set in container');
         }
 
         $extension = new PodcastExtension($siteBaseUrl);
-        $builder->addExtension($extension);
-        return $parameters;
+        $event->builder->addExtension($extension);
     }
 
-    public function handlePreRender(Container $container, array $parameters): array
+    #[EventListener('PRE_RENDER', priority: 50)]
+    public function handlePreRender(RenderEvent $event): void
     {
-        return $this->pageListener->handle($parameters);
+        $this->pageListener->handle($event);
     }
 
     public function getRequiredConfig(): array
