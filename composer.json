@@ -25,6 +25,5 @@
         "staticforge": {
             "feature": "Calevans\\StaticForgePodcast\\Feature"
         }
-    },
-    "version": "3.0.0"
+    }
 }
