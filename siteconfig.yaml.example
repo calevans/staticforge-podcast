@@ -1,0 +1,33 @@
+# Podcast feature configuration. Merge this into your project's siteconfig.yaml.
+#
+# Everything under `podcast:` (except `platforms:`) is a set of channel-level
+# defaults. A category definition file (a content file with `type: category`)
+# can override any of these keys, one at a time, in its own frontmatter -
+# whatever it sets wins for that feed; anything it leaves out falls back to
+# the value here.
+#
+# A category feed only gets iTunes tags at all if its definition file's
+# frontmatter also sets `podcast: true` - this file's `podcast:` root key
+# alone does not turn on the iTunes namespace for any feed.
+podcast:
+  itunes_author: "Jane Doe"
+  itunes_owner_name: "Jane Doe"
+  itunes_owner_email: "jane@example.com"
+  itunes_category:
+    - "Technology > Software"
+    - "Education"
+  itunes_image: "/assets/images/cover_art.jpg" # 3000x3000px recommended
+  itunes_type: "episodic" # or 'serial'
+  itunes_summary: "A show about static sites and PHP mastery."
+  itunes_explicit: false
+
+  # "Listen On" badge widget. Every URL must start with https:// - the badge
+  # template refuses to render anything else.
+  platforms:
+    apple: "https://podcasts.apple.com/us/podcast/your-show/id123456"
+    spotify: "https://open.spotify.com/show/your-show-id"
+    amazon: "https://music.amazon.com/podcasts/your-show-id"
+    iheart: "https://www.iheart.com/podcast/your-show-id"
+    pocketcasts: "https://pca.st/your-show-id"
+    youtube: "https://www.youtube.com/@YourChannel"
+    rss: "https://example.com/podcast/rss.xml"

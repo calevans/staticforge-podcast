@@ -7,6 +7,7 @@ namespace Calevans\StaticForgePodcast\Tests\Unit;
 use Calevans\StaticForgePodcast\Feature;
 use Calevans\StaticForgePodcast\Tests\TestCase;
 use EICC\StaticForge\Core\Events\ConsoleInitEvent;
+use EICC\StaticForge\Core\Events\Event;
 use EICC\StaticForge\Core\Events\RenderEvent;
 use EICC\StaticForge\Core\Events\RssBuilderInitEvent;
 use EICC\StaticForge\Core\Events\RssItemBuildingEvent;
@@ -60,34 +61,39 @@ class FeatureTest extends TestCase
         rmdir($dir);
     }
 
-    public function testRegisterRegistersAllFourListeners(): void
+    public function testRegisterRegistersAListenerForEveryLifecycleEventItUses(): void
     {
-        $this->assertNotEmpty($this->eventManager->getListeners('CONSOLE_INIT'));
-        $this->assertNotEmpty($this->eventManager->getListeners('RSS_ITEM_BUILDING'));
-        $this->assertNotEmpty($this->eventManager->getListeners('RSS_BUILDER_INIT'));
-        $this->assertNotEmpty($this->eventManager->getListeners('PRE_RENDER'));
+        foreach (
+            [
+                'CONSOLE_INIT',
+                'CREATE',
+                'PRE_LOOP',
+                'PRE_RENDER',
+                'MARKDOWN_CONVERTED',
+                'RSS_BUILDER_INIT',
+                'RSS_ITEM_BUILDING',
+                'POST_LOOP',
+                'DESTROY',
+            ] as $eventName
+        ) {
+            $this->assertNotEmpty(
+                $this->eventManager->getListeners($eventName),
+                "No listener registered for {$eventName}",
+            );
+        }
     }
 
-    public function testRegisterCommandsAddsBothCommands(): void
+    public function testRegisterCommandsAddsOnlyMediaInspectCommand(): void
     {
+        // podcast:setup was deleted in 3.1.0 - core's `feature:setup` now
+        // installs the example templates/config instead.
         $app = new Application();
         $event = new ConsoleInitEvent('CONSOLE_INIT', $app);
 
         $this->feature->registerCommands($event);
 
         $this->assertTrue($app->has('media:inspect'));
-        $this->assertTrue($app->has('podcast:setup'));
-    }
-
-    public function testHandleRssItemBuildingThrowsWhenBaseUrlMissing(): void
-    {
-        $item = new FeedItem('Title', 'https://example.com/page', 'guid-1', 'Mon, 01 Jan 2024 00:00:00 +0000');
-        $event = new RssItemBuildingEvent('RSS_ITEM_BUILDING', $item, ['metadata' => []]);
-
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('SITE_BASE_URL not set in container');
-
-        $this->feature->handleRssItemBuilding($event);
+        $this->assertFalse($app->has('podcast:setup'));
     }
 
     public function testHandleRssItemBuildingSkipsNonPodcastItems(): void
@@ -103,23 +109,12 @@ class FeatureTest extends TestCase
         $this->assertNull($item->enclosure);
     }
 
-    public function testHandleRssBuilderInitThrowsWhenBaseUrlMissing(): void
-    {
-        $builder = new RssBuilder();
-        $event = new RssBuilderInitEvent('RSS_BUILDER_INIT', $builder, []);
-
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('SITE_BASE_URL not set in container');
-
-        $this->feature->handleRssBuilderInit($event);
-    }
-
-    public function testHandleRssBuilderInitAddsExtension(): void
+    public function testHandleRssBuilderInitAddsExtensionWhenCategoryOptsInWithPodcastTrue(): void
     {
         $this->setContainerVariable('SITE_BASE_URL', 'https://example.com');
 
         $builder = new RssBuilder();
-        $event = new RssBuilderInitEvent('RSS_BUILDER_INIT', $builder, []);
+        $event = new RssBuilderInitEvent('RSS_BUILDER_INIT', $builder, ['podcast' => true]);
 
         $this->feature->handleRssBuilderInit($event);
 
@@ -129,6 +124,23 @@ class FeatureTest extends TestCase
         $xml = $builder->build($channel, []);
 
         $this->assertStringContainsString('xmlns:itunes', $xml);
+    }
+
+    public function testHandleRssBuilderInitSkipsExtensionWhenCategoryMetadataHasNoPodcastGate(): void
+    {
+        $this->setContainerVariable('SITE_BASE_URL', 'https://example.com');
+
+        $builder = new RssBuilder();
+        // Empty categoryMetadata: a plain blog category with no `podcast: true`
+        // marker must not advertise iTunes support it doesn't have.
+        $event = new RssBuilderInitEvent('RSS_BUILDER_INIT', $builder, []);
+
+        $this->feature->handleRssBuilderInit($event);
+
+        $channel = new FeedChannel('Test Feed', 'https://example.com/', 'A test feed', 'https://example.com/rss.xml');
+        $xml = $builder->build($channel, []);
+
+        $this->assertStringNotContainsString('xmlns:itunes', $xml);
     }
 
     public function testHandlePreRenderSkipsNonPodcastPages(): void
@@ -144,5 +156,46 @@ class FeatureTest extends TestCase
 
         $this->assertArrayNotHasKey('audio_url', $event->metadata);
         $this->assertArrayNotHasKey('video_url', $event->metadata);
+    }
+
+    public function testHandleCreateWarnsAboutLegacyRootLevelPodcastPlatformsKey(): void
+    {
+        $this->setContainerVariable('site_config', ['podcast_platforms' => ['apple' => 'https://x']]);
+
+        $this->logger->expects($this->once())
+            ->method('log')
+            ->with('WARNING', $this->stringContains("'podcast:' root key"));
+
+        $this->feature->handleCreate(new Event('CREATE'));
+    }
+
+    public function testHandleCreateWarnsAboutLegacyRootLevelItunesKeys(): void
+    {
+        $this->setContainerVariable('site_config', ['itunes_author' => 'Someone']);
+
+        $this->logger->expects($this->once())->method('log')->with('WARNING', $this->anything());
+
+        $this->feature->handleCreate(new Event('CREATE'));
+    }
+
+    public function testHandleCreateDoesNotWarnWhenPodcastKeyAlreadyPresent(): void
+    {
+        $this->setContainerVariable('site_config', [
+            'podcast' => ['itunes_author' => 'Someone'],
+            'podcast_platforms' => ['apple' => 'https://x'],
+        ]);
+
+        $this->logger->expects($this->never())->method('log');
+
+        $this->feature->handleCreate(new Event('CREATE'));
+    }
+
+    public function testHandleCreateDoesNotWarnWhenNoLegacyKeysPresent(): void
+    {
+        $this->setContainerVariable('site_config', ['site' => ['name' => 'Test Podcast']]);
+
+        $this->logger->expects($this->never())->method('log');
+
+        $this->feature->handleCreate(new Event('CREATE'));
     }
 }
