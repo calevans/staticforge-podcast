@@ -26,16 +26,16 @@ php vendor/bin/staticforge feature:setup calevans/staticforge-podcast
 
 This copies two files:
 
-* `siteconfig.yaml.example.staticforge-podcast` in your project root — merge its `podcast:` block into your own `siteconfig.yaml`.
-* `_podcast_badges.html.twig.example` into your active template directory.
+* `siteconfig.yaml.example.staticforge-podcast` into your project root — merge its `podcast:` block into your own `siteconfig.yaml`.
+* `_podcast_badges.html.twig` into your active template directory.
 
-**About that second file:** `feature:setup` decides where to put it using the `TEMPLATE_DIR` and `TEMPLATE` environment variables from `.env`, not your `siteconfig.yaml`'s `site.template` key. If `site.template` is what actually controls your active theme (the normal case) and you don't also set `TEMPLATE` in `.env`, the file lands in `templates/_podcast_badges.html.twig.example` instead of inside your theme's folder. Check where it landed, then move and rename it yourself, for example:
+**On StaticForge core older than 3.2.0**, `feature:setup` picked the destination from the `TEMPLATE` environment variable rather than `siteconfig.yaml`'s `site.template`, and left the `.example` suffix on the filename. If you're on an older core and set your theme in `siteconfig.yaml`, the partial lands in `templates/` instead of your theme's folder and you'll need to move and rename it yourself:
 
 ```bash
-mv templates/_podcast_badges.html.twig.example templates/sample/_podcast_badges.html.twig
+mv templates/_podcast_badges.html.twig.example templates/mytheme/_podcast_badges.html.twig
 ```
 
-(Replace `sample` with your actual template name — the one in `siteconfig.yaml`'s `site.template`.)
+Core 3.2.0 and later put it in the right place, correctly named, with no manual step.
 
 ## Configuration
 
